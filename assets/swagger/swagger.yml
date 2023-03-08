@@ -1,0 +1,450 @@
+openapi: 3.0.0
+info:
+  title: Auth API
+  version: 1.0.0
+  description: API Documentation
+
+tags:
+  - name: users
+    description: Управление юзером
+  - name: user_groups
+    description: Управление юзер группами
+  - name: authorise
+    description: Авторизация
+
+paths:
+  /api/v1/users:
+    get:
+      tags:
+        - users
+      summary: Получение пользователя по ID
+      security:
+        - ApiKeyAuth: [ ]
+      parameters:
+        - name: per_page
+          in: query
+          required: true
+          description: Количество элементов на странице
+          schema:
+            type: number
+            format: int64
+        - name: page
+          in: query
+          required: true
+          description: начать со страницы
+          schema:
+            type: number
+            format: int64
+      responses:
+        '200':
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        '404':
+          description: Не найдено
+        '500':
+          description: Ошибка сервера
+
+  /api/v1/users/{id}:
+    get:
+      tags:
+        - users
+      summary: Получение пользователя по ID
+      security:
+        - ApiKeyAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID пользователя
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '404':
+          description: Не найдено
+        '500':
+          description: Ошибка сервера
+
+    put:
+      tags:
+        - users
+      summary: Обновление пользователя
+      security:
+        - ApiKeyAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID пользователя
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserReq"
+      responses:
+        '200':
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '400':
+          description: Неверный запрос
+        '404':
+          description: Не найдено
+        '500':
+          description: Ошибка сервера
+
+    delete:
+      tags:
+        - users
+      summary: Удаление пользователя
+      security:
+        - ApiKeyAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID пользователя
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Нет содержимого
+        '404':
+          description: Не найдено
+        '500':
+          description: Ошибка сервера
+
+  /api/v1/user-groups:
+    get:
+      tags:
+        - user_groups
+      summary: Получение списка групп пользователей
+      security:
+        - ApiKeyAuth: [ ]
+      parameters:
+        - name: per_page
+          in: query
+          required: true
+          description: Количество элементов на странице
+          schema:
+            type: number
+            format: int64
+        - name: page
+          in: query
+          required: true
+          description: начать со страницы
+          schema:
+            type: number
+            format: int64
+      responses:
+        '200':
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserGroup"
+        '404':
+          description: Не найдено
+        '500':
+          description: Ошибка сервера
+    post:
+      tags:
+        - user_groups
+      summary: Создание новой группы пользователей
+      security:
+        - ApiKeyAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserGroupReq"
+      responses:
+        '200':
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroup"
+        '400':
+          description: Неверный запрос
+        '500':
+          description: Ошибка сервера
+
+  /api/v1/user-groups/{id}:
+    get:
+      tags:
+        - user_groups
+      summary: Получение группы пользователей по ID
+      security:
+        - ApiKeyAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID группы пользователей
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroup"
+        '404':
+          description: Не найдено
+        '500':
+          description: Ошибка сервера
+
+    put:
+      tags:
+        - user_groups
+      summary: Обновление группы пользователей
+      security:
+        - ApiKeyAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID группы пользователей
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserGroupReq"
+      responses:
+        '200':
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroup"
+        '400':
+          description: Неверный запрос
+        '404':
+          description: Не найдено
+        '500':
+          description: Ошибка сервера
+
+    delete:
+      tags:
+        - user_groups
+      summary: Удаление группы пользователей
+      security:
+        - ApiKeyAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID группы пользователей
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Нет содержимого
+        '404':
+          description: Не найдено
+        '500':
+          description: Ошибка сервера
+
+  /api/v1/auth/register:
+    post:
+      tags:
+        - authorise
+      summary: Регистрация нового пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserReq"
+      responses:
+        '200':
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '400':
+          description: Неверный запрос
+        '500':
+          description: Ошибка сервера
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - authorise
+      summary: Авторизация пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Auth"
+      responses:
+        '200':
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        '400':
+          description: Неверный запрос
+        '401':
+          description: Неверный логин или пароль
+        '500':
+          description: Ошибка сервера
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - authorise
+      summary: Завершение сеанса пользователя
+      security:
+        - ApiKeyAuth: [ ]
+      responses:
+        '204':
+          description: Нет содержимого
+        '400':
+          description: Неверный запрос
+        '500':
+          description: Ошибка сервера
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-AUTH-TOKEN
+  schemas:
+    User:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ID пользователя
+        login:
+          example: vasya_pupkin
+          type: string
+          description: Логин пользователя
+        password:
+          example: ow7yxr2348wrtm8
+          type: string
+          description: Пароль пользователя
+        user_group_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: ID группы пользователей
+    UserReq:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          example: vasya_pupkin
+          type: string
+          description: Логин пользователя
+        password:
+          example: ow7yxr2348wrtm8
+          type: string
+          description: Пароль пользователя
+        user_group_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: ID группы пользователей
+
+    UserGroup:
+      type: object
+      required:
+        - name
+        - is_admin
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ID группы пользователей
+        name:
+          type: string
+          description: Название группы пользователей
+        is_admin:
+          type: boolean
+          description: Флаг, указывающий, является ли группа пользователей администраторской
+    UserGroupReq:
+      type: object
+      required:
+        - name
+        - is_admin
+      properties:
+        name:
+          type: string
+          description: Название группы пользователей
+        is_admin:
+          type: boolean
+          description: Флаг, указывающий, является ли группа пользователей администраторской
+
+    Auth:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+          description: Логин пользователя
+        password:
+          type: string
+          description: Пароль пользователя
+
+    Session:
+      type: object
+      required:
+        - token
+        - user_id
+      properties:
+        token:
+          type: string
+          description: Токен сеанса пользователя
+        user_id:
+          type: integer
+          format: int64
+          description: ID пользователя
+        expr:
+          type: string
+          format: date-time
+          nullable: true
+          description: Дата и время истечения срока действия токена сеанса пользователя
+

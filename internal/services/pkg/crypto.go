@@ -1,11 +1,15 @@
 package pkg
 
-import "crypto/sha256"
+import (
+	"crypto/sha256"
+	"fmt"
+)
 
 func HashPassword(password string) string {
-	return string(sha256.New().Sum([]byte(password)))
+	hash := sha256.Sum256([]byte(password))
+	return fmt.Sprintf("%x", hash[:])
 }
 
 func PasswordEqual(password, hash string) bool {
-	return string(sha256.New().Sum([]byte(password))) == hash
+	return HashPassword(password) == hash
 }

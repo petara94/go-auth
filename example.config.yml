@@ -1,0 +1,5 @@
+api:
+  port: ":8080"
+  app_name: "go-auth"
+db:
+  url: "postgres://goth:gothpw@localhost:5432/goth?sslmode=disable"
