@@ -32,7 +32,18 @@ build:
 	rm -rf $(OUT)
 	$(EXPORTS) go build -ldflags "-X github.com/petara94/go-auth.Version=$(GIT_TAG)-$(GIT_REV)" -o $(OUT) ./cmd/$(CMD)
 
-
-
 run: build
 	./$(OUT)
+.PHONY: run
+
+database.up:
+	docker-compose -f ./test/docker-compose.yml up -d
+.PHONY: database.up
+
+database.stop:
+	docker-compose -f ./test/docker-compose.yml stop
+.PHONY: database.stop
+
+database.clear:
+	docker-compose -f ./test/docker-compose.yml down
+.PHONY: database.clear
