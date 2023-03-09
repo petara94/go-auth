@@ -1,11 +1,7 @@
 package repo
 
-type RepoError string
+import "errors"
 
-func (r RepoError) Error() string {
-	return string(r)
-}
-
-const (
-	ErrNotFound RepoError = "not found"
+var (
+	ErrNotFound = errors.New("not found")
 )

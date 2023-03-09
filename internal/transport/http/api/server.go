@@ -84,6 +84,8 @@ func (s *Server) Build() error {
 
 	route.Get("/users", GetUserAllHandler(s.UserService))
 	route.Get("/users/:id", GetUserByIDHandler(s.UserService))
+	route.Put("/users/:id", UpdateUserHandler(s.UserService))
+	route.Delete("/users/:id", DeleteUserHandler(s.UserService))
 
 	auth := route.Group("/auth/")
 	// AuthService

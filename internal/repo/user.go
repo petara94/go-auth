@@ -3,7 +3,9 @@ package repo
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/petara94/go-auth/internal/transport/http/api/dto"
 )
@@ -125,6 +127,9 @@ func (u *UserStore) Update(user dto.User) (*dto.User, error) {
 
 	err := row.Scan(&updatedUser.ID, &updatedUser.Login, &updatedUser.Password, &updatedUser.UserGroupID)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 

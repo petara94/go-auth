@@ -1,6 +1,8 @@
-package pkg
+package api
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"github.com/gofiber/fiber/v2"
+)
 
 func SendJson(ctx *fiber.Ctx, body []byte) {
 	ctx.Response().SetBody(body)

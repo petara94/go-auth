@@ -25,7 +25,7 @@ func (s *AuthService) Login(auth dto.Auth) (*dto.Session, error) {
 		return nil, err
 	}
 
-	if pkg.PasswordEqual(auth.Password, string(userByLogin.Password)) {
+	if pkg.PasswordEqual(auth.Password, userByLogin.Password) {
 		return nil, err
 	}
 

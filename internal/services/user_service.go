@@ -58,6 +58,17 @@ func (s *UserService) GetByLogin(login string) (*dto.User, error) {
 }
 
 func (s *UserService) Update(user dto.User) (*dto.User, error) {
+	old, err := s.userRepository.GetByID(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if pkg.PasswordEqual(user.Password, old.Password) {
+		user.Password = old.Password
+	} else {
+		user.Password = pkg.HashPassword(user.Password)
+	}
+
 	return s.userRepository.Update(user)
 }
 
