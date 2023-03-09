@@ -21,20 +21,8 @@ paths:
       security:
         - ApiKeyAuth: [ ]
       parameters:
-        - name: per_page
-          in: query
-          required: true
-          description: Количество элементов на странице
-          schema:
-            type: number
-            format: int64
-        - name: page
-          in: query
-          required: true
-          description: начать со страницы
-          schema:
-            type: number
-            format: int64
+        - $ref: "#/components/parameters/PerPageQueryParam"
+        - $ref: "#/components/parameters/PageQueryParam"
       responses:
         '200':
           description: Успешно
@@ -140,20 +128,8 @@ paths:
       security:
         - ApiKeyAuth: [ ]
       parameters:
-        - name: per_page
-          in: query
-          required: true
-          description: Количество элементов на странице
-          schema:
-            type: number
-            format: int64
-        - name: page
-          in: query
-          required: true
-          description: начать со страницы
-          schema:
-            type: number
-            format: int64
+        - $ref: "#/components/parameters/PerPageQueryParam"
+        - $ref: "#/components/parameters/PageQueryParam"
       responses:
         '200':
           description: Успешно
@@ -343,6 +319,23 @@ components:
       type: apiKey
       in: header
       name: X-AUTH-TOKEN
+  parameters:
+    PerPageQueryParam:
+      name: per_page
+      in: query
+      required: true
+      description: Количество элементов на странице
+      schema:
+        type: number
+        format: int64
+    PageQueryParam:
+      name: page
+      in: query
+      required: true
+      description: начать со страницы
+      schema:
+        type: number
+        format: int64
   schemas:
     User:
       type: object
