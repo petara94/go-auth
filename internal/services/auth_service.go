@@ -7,6 +7,7 @@ import (
 	"github.com/petara94/go-auth/internal/transport/http/api/dto"
 )
 
+//go:generate mockery --name SessionRepository
 type SessionRepository interface {
 	Create(session dto.Session) (*dto.Session, error)
 	GetByToken(token string) (*dto.Session, error)

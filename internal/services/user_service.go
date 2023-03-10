@@ -8,6 +8,8 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:generate mockery --name UserRepository
+
 type UserRepository interface {
 	Create(user dto.User) (uint64, error)
 	GetByID(id uint64) (*dto.User, error)

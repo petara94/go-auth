@@ -5,6 +5,7 @@ import (
 	"github.com/petara94/go-auth/internal/transport/http/api/dto"
 )
 
+//go:generate mockery --name UserGroupRepository
 type UserGroupRepository interface {
 	Create(group dto.UserGroup) (*dto.UserGroup, error)
 	GetByID(id uint64) (*dto.UserGroup, error)

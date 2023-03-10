@@ -8,6 +8,7 @@ import (
 
 type ID uint64
 
+//go:generate mockery --name UserService
 type UserService interface {
 	Create(u dto.User) (*dto.User, error)
 	GetByID(id uint64) (*dto.User, error)
@@ -16,6 +17,7 @@ type UserService interface {
 	Delete(id uint64) error
 }
 
+//go:generate mockery --name UserGroupService
 type UserGroupService interface {
 	Create(u dto.UserGroup) (*dto.UserGroup, error)
 	Get(id uint64) (*dto.UserGroup, error)
@@ -23,6 +25,7 @@ type UserGroupService interface {
 	Delete(id uint64) error
 }
 
+//go:generate mockery --name AuthService
 type AuthService interface {
 	Login(auth dto.Auth) (*dto.Session, error)
 	Get(token string) (*dto.Session, error)
