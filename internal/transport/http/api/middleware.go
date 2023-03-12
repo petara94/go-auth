@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/petara94/go-auth/assets"
@@ -10,7 +11,7 @@ import (
 	"time"
 )
 
-func LoggerMiddleWare(logger zap.Logger) fiber.Handler {
+func LoggerMiddleware(logger zap.Logger) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		req := ctx.Request()
 		res := ctx.Response()
@@ -61,7 +62,34 @@ func LoggerMiddleWare(logger zap.Logger) fiber.Handler {
 	}
 }
 
-func SwaggerMiddleWare() fiber.Handler {
+func CheckAuthorizeMiddleware(authService AuthService) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		headers := ctx.GetReqHeaders()
+		token, ok := headers[TokenHeader]
+
+		if !ok {
+			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
+		}
+
+		session, err := authService.Get(token)
+		if err != nil {
+			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrTokenExpired))
+		}
+
+		if session.Expr != nil {
+			if time.Now().Unix() < session.Expr.Unix() {
+				return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrTokenExpired))
+			}
+		}
+
+		authCtx := context.WithValue(context.Background(), AuthSessionCtxKey, *session)
+		ctx.SetUserContext(authCtx)
+
+		return ctx.Next()
+	}
+}
+
+func SwaggerMiddleware() fiber.Handler {
 	return filesystem.New(
 		filesystem.Config{
 			Root:       http.FS(assets.SwaggerFiles),

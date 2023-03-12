@@ -17,7 +17,7 @@ paths:
     get:
       tags:
         - users
-      summary: Получение пользователя по ID
+      summary: Получение списка пользователя
       security:
         - ApiKeyAuth: [ ]
       parameters:

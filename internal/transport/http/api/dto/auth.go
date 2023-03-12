@@ -9,6 +9,6 @@ type Session struct {
 }
 
 type Auth struct {
-	Login    string `json:"user_id"`
+	Login    string `json:"login"`
 	Password string `json:"password"`
 }

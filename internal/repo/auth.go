@@ -1,26 +1,32 @@
 package repo
 
 import (
+	"context"
 	"database/sql"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/petara94/go-auth/internal/transport/http/api/dto"
 )
 
 type SessionStore struct {
-	db *sql.DB
+	ctx context.Context
+	db  *pgxpool.Pool
 }
 
-func NewSessionStore(db *sql.DB) *SessionStore {
-	return &SessionStore{db: db}
+func NewSessionStore(ctx context.Context, db *pgxpool.Pool) *SessionStore {
+	return &SessionStore{ctx: ctx, db: db}
 }
 
 func (s *SessionStore) Create(session dto.Session) (*dto.Session, error) {
-	const q = "INSERT INTO main.sessions (token, user_id, expr) VALUES ($1, $2, $3) RETURNING token, user_id, expr"
+	const q = "INSERT INTO public.sessions (token, user_id, expr) VALUES ($1, $2, $3) RETURNING token, user_id, expr"
 
-	result := s.db.QueryRow(q, session.Token, session.UserID, session.Expr)
+	result := s.db.QueryRow(s.ctx, q, session.Token, session.UserID, session.Expr)
 
 	var createdSession dto.Session
 	err := result.Scan(&createdSession.Token, &createdSession.UserID, &createdSession.Expr)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 
@@ -28,11 +34,11 @@ func (s *SessionStore) Create(session dto.Session) (*dto.Session, error) {
 }
 
 func (s *SessionStore) GetByToken(token string) (*dto.Session, error) {
-	const q = "SELECT token, user_id, expr FROM main.sessions WHERE token = $1"
+	const q = "SELECT token, user_id, expr FROM public.sessions WHERE token = $1"
 
 	var session dto.Session
 
-	result := s.db.QueryRow(q, token)
+	result := s.db.QueryRow(s.ctx, q, token)
 
 	err := result.Scan(&session.Token, &session.UserID, &session.Expr)
 	if err != nil {
@@ -46,9 +52,9 @@ func (s *SessionStore) GetByToken(token string) (*dto.Session, error) {
 }
 
 func (s *SessionStore) DeleteByToken(token string) error {
-	const q = "DELETE FROM main.sessions WHERE token = $1"
+	const q = "DELETE FROM public.sessions WHERE token = $1"
 
-	_, err := s.db.Exec(q, token)
+	_, err := s.db.Exec(s.ctx, q, token)
 	if err != nil {
 		return err
 	}

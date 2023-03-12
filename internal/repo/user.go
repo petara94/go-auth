@@ -88,12 +88,10 @@ func (u *UserStore) Get(perPage, page int) ([]*dto.User, error) {
 
 	for result.Next() {
 		user := dto.User{}
-		var pass []byte
-		err = result.Scan(&user.ID, &user.Login, &pass, &user.UserGroupID)
+		err = result.Scan(&user.ID, &user.Login, &user.Password, &user.UserGroupID)
 		if err != nil {
 			return nil, err
 		}
-		user.Password = string(pass)
 		users = append(users, &user)
 	}
 
@@ -101,7 +99,7 @@ func (u *UserStore) Get(perPage, page int) ([]*dto.User, error) {
 }
 
 func (u *UserStore) GetByLogin(login string) (*dto.User, error) {
-	const q = "SELECT id, login, password, user_group_id FROM public.users WHERE login = $1"
+	const q = "SELECT id, login, password, user_group_id FROM public.users WHERE login = $1::text"
 
 	var user = dto.User{}
 
@@ -109,7 +107,7 @@ func (u *UserStore) GetByLogin(login string) (*dto.User, error) {
 
 	err := row.Scan(&user.ID, &user.Login, &user.Password, &user.UserGroupID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, ErrNotFound
 		}
 		return nil, err

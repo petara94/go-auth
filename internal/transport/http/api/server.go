@@ -20,7 +20,8 @@ type UserService interface {
 //go:generate mockery --name UserGroupService
 type UserGroupService interface {
 	Create(u dto.UserGroup) (*dto.UserGroup, error)
-	Get(id uint64) (*dto.UserGroup, error)
+	GetByID(id uint64) (*dto.UserGroup, error)
+	Get(perPage, page int) ([]*dto.UserGroup, error)
 	Update(u dto.UserGroup) (*dto.UserGroup, error)
 	Delete(id uint64) error
 }
@@ -75,24 +76,33 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) Build() error {
+	s.srv.Use(LoggerMiddleware(s.logger))
 
-	s.srv.Use(LoggerMiddleWare(s.logger))
-
-	s.srv.Get("/swagger/*", SwaggerMiddleWare())
+	s.srv.Get("/swagger/*", SwaggerMiddleware())
 	s.srv.Get("/", func(ctx *fiber.Ctx) error {
 		return ctx.Redirect("/swagger/")
 	})
 
 	route := s.srv.Group("/api/v1/")
 
-	route.Get("/users", GetUserAllHandler(s.UserService))
-	route.Get("/users/:id", GetUserByIDHandler(s.UserService))
-	route.Put("/users/:id", UpdateUserHandler(s.UserService))
-	route.Delete("/users/:id", DeleteUserHandler(s.UserService))
+	userRoute := route.Group("/users/", CheckAuthorizeMiddleware(s.AuthService))
+	userRoute.Get("/", GetUserAllHandler(s.UserService))
+	userRoute.Get("/:id", GetUserByIDHandler(s.UserService))
+	userRoute.Put("/:id", UpdateUserHandler(s.UserService))
+	userRoute.Delete("/:id", DeleteUserHandler(s.UserService))
+
+	userGroupRoute := route.Group("/user-groups/")
+	userGroupRoute.Post("/", CreateUserGroupHandler(s.UserGroupService))
+	userGroupRoute.Get("/", GetUserGroupAllHandler(s.UserGroupService))
+	userGroupRoute.Get("/:id", GetUserGroupByIDHandler(s.UserGroupService))
+	userGroupRoute.Put("/:id", UpdateUserGroupHandler(s.UserGroupService))
+	userGroupRoute.Delete("/:id", DeleteUserGroupHandler(s.UserGroupService))
 
 	auth := route.Group("/auth/")
 	// AuthService
 	auth.Post("/register", CreateUserHandler(s.UserService))
+	auth.Post("/login", LoginHandler(s.AuthService))
+	auth.Post("/logout", LogoutHandler(s.AuthService))
 
 	return nil
 }

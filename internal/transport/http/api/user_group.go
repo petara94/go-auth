@@ -10,24 +10,24 @@ import (
 	"strconv"
 )
 
-func CreateUserHandler(userService UserService) fiber.Handler {
+func CreateUserGroupHandler(userGroupService UserGroupService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var (
-			user = &dto.User{}
-			err  error
+			userGroup = &dto.UserGroup{}
+			err       error
 		)
 
-		err = ctx.BodyParser(user)
+		err = ctx.BodyParser(userGroup)
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
 
-		user, err = userService.Create(*user)
+		userGroup, err = userGroupService.Create(*userGroup)
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
 
-		data, err := json.Marshal(user)
+		data, err := json.Marshal(userGroup)
 		if err != nil {
 			return ctx.Status(http.StatusInternalServerError).JSON(RestErrorFromError(err))
 		}
@@ -38,13 +38,13 @@ func CreateUserHandler(userService UserService) fiber.Handler {
 	}
 }
 
-func GetUserAllHandler(userService UserService) fiber.Handler {
+func GetUserGroupAllHandler(userGroupService UserGroupService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var (
-			users   []*dto.User
-			err     error
-			perPage int
-			page    int
+			userGroups []*dto.UserGroup
+			err        error
+			perPage    int
+			page       int
 		)
 
 		perPage, err = strconv.Atoi(ctx.Query(PerPageKey))
@@ -65,12 +65,12 @@ func GetUserAllHandler(userService UserService) fiber.Handler {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("param `%s`: %s", PageKey, ErrBadParam))
 		}
 
-		users, err = userService.Get(perPage, page)
+		userGroups, err = userGroupService.Get(perPage, page)
 		if err != nil {
 			return ctx.Status(http.StatusNotFound).JSON(RestErrorFromError(err))
 		}
 
-		data, err := json.Marshal(users)
+		data, err := json.Marshal(userGroups)
 		if err != nil {
 			return ctx.Status(http.StatusInternalServerError).JSON(RestErrorFromError(err))
 		}
@@ -81,35 +81,25 @@ func GetUserAllHandler(userService UserService) fiber.Handler {
 	}
 }
 
-func GetUserByIDHandler(userService UserService) fiber.Handler {
+func GetUserGroupByIDHandler(userGroupService UserGroupService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var (
-			user    *dto.User
-			err     error
-			id      uint64
-			authCtx = ctx.UserContext()
+			userGroup *dto.UserGroup
+			err       error
+			id        uint64
 		)
-
-		session, ok := authCtx.Value(AuthSessionCtxKey).(dto.Session)
-		if !ok {
-			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
-		}
 
 		id, err = strconv.ParseUint(ctx.Params("id"), 10, 64)
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
 
-		if session.UserID != id {
-			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAllowed))
-		}
-
-		user, err = userService.GetByID(id)
+		userGroup, err = userGroupService.GetByID(id)
 		if err != nil {
 			return ctx.Status(http.StatusNotFound).JSON(RestErrorFromError(err))
 		}
 
-		data, err := json.Marshal(user)
+		data, err := json.Marshal(userGroup)
 		if err != nil {
 			return ctx.Status(http.StatusInternalServerError).JSON(RestErrorFromError(err))
 		}
@@ -120,12 +110,12 @@ func GetUserByIDHandler(userService UserService) fiber.Handler {
 	}
 }
 
-func UpdateUserHandler(userService UserService) fiber.Handler {
+func UpdateUserGroupHandler(userGroupService UserGroupService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var (
-			user = &dto.User{}
-			err  error
-			id   uint64
+			userGroup = &dto.UserGroup{}
+			err       error
+			id        uint64
 		)
 
 		id, err = strconv.ParseUint(ctx.Params("id"), 10, 64)
@@ -133,14 +123,14 @@ func UpdateUserHandler(userService UserService) fiber.Handler {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
 
-		err = ctx.BodyParser(user)
+		err = ctx.BodyParser(userGroup)
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
 
-		user.ID = id
+		userGroup.ID = id
 
-		user, err = userService.Update(*user)
+		userGroup, err = userGroupService.Update(*userGroup)
 		if err != nil {
 			if errors.Is(err, repo.ErrNotFound) {
 				return ctx.Status(http.StatusNotFound).JSON(RestErrorFromError(err))
@@ -148,7 +138,7 @@ func UpdateUserHandler(userService UserService) fiber.Handler {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
 
-		data, err := json.Marshal(user)
+		data, err := json.Marshal(userGroup)
 		if err != nil {
 			return ctx.Status(http.StatusInternalServerError).JSON(RestErrorFromError(err))
 		}
@@ -159,7 +149,7 @@ func UpdateUserHandler(userService UserService) fiber.Handler {
 	}
 }
 
-func DeleteUserHandler(userService UserService) fiber.Handler {
+func DeleteUserGroupHandler(userGroupService UserGroupService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var (
 			err error
@@ -171,7 +161,7 @@ func DeleteUserHandler(userService UserService) fiber.Handler {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
 
-		err = userService.Delete(id)
+		err = userGroupService.Delete(id)
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}

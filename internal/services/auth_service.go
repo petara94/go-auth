@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/petara94/go-auth/internal/services/pkg"
 	"github.com/petara94/go-auth/internal/transport/http/api/dto"
+	"time"
 )
 
 //go:generate mockery --name SessionRepository
@@ -20,14 +21,18 @@ type AuthService struct {
 	userGroupRepository UserRepository
 }
 
+func NewAuthService(ctx context.Context, sessionRepository SessionRepository, userGroupRepository UserRepository) *AuthService {
+	return &AuthService{ctx: ctx, sessionRepository: sessionRepository, userGroupRepository: userGroupRepository}
+}
+
 func (s *AuthService) Login(auth dto.Auth) (*dto.Session, error) {
 	userByLogin, err := s.userGroupRepository.GetByLogin(auth.Login)
 	if err != nil {
 		return nil, err
 	}
 
-	if pkg.PasswordEqual(auth.Password, userByLogin.Password) {
-		return nil, err
+	if !pkg.PasswordEqual(auth.Password, userByLogin.Password) {
+		return nil, ErrLoginErr
 	}
 
 	session, err := s.sessionRepository.Create(dto.Session{
@@ -46,5 +51,16 @@ func (s *AuthService) Logout(session dto.Session) error {
 }
 
 func (s *AuthService) Get(token string) (*dto.Session, error) {
-	return s.sessionRepository.GetByToken(token)
+	session, err := s.sessionRepository.GetByToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	if session.Expr != nil {
+		if session.Expr.Unix() > time.Now().Unix() {
+			return nil, ErrSessionExpired
+		}
+	}
+
+	return session, nil
 }

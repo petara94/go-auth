@@ -36,6 +36,10 @@ run: build
 	./$(OUT)
 .PHONY: run
 
+test:
+	go test -count=1 -race -timeout 1m ./...
+.PHONY: test
+
 database.up:
 	docker-compose -f ./test/docker-compose.yml up -d
 .PHONY: database.up
