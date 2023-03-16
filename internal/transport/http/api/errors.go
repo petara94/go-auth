@@ -26,6 +26,4 @@ var (
 	ErrTokenExpired  = errors.New("token expired")
 	ErrNotAuthorised = errors.New("not authorised")
 	ErrNotAllowed    = errors.New("not allowed")
-
-	Success = errors.New("success")
 )

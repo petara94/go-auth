@@ -1,11 +1,11 @@
 package api
 
 import (
-	"context"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/petara94/go-auth/assets"
 	"github.com/petara94/go-auth/internal/transport/http/api/dto"
+	"github.com/petara94/go-auth/internal/transport/http/api/pkg"
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
@@ -83,8 +83,28 @@ func CheckAuthorizeMiddleware(authService AuthService) fiber.Handler {
 			}
 		}
 
-		authCtx := context.WithValue(context.Background(), AuthSessionCtxKey, *session)
-		ctx.SetUserContext(authCtx)
+		ctx.Locals(AuthSessionKey, *session)
+
+		return ctx.Next()
+	}
+}
+
+// CheckSessionWithRequestIDMiddleware middleware check session user id with request id
+func CheckSessionWithRequestIDMiddleware() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		session, ok := ctx.Locals(AuthSessionKey).(dto.Session)
+		if !ok {
+			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
+		}
+
+		id, err := pkg.ParseUInt64(ctx.Params("id"))
+		if err != nil {
+			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
+		}
+
+		if session.UserID != id {
+			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
+		}
 
 		return ctx.Next()
 	}
@@ -93,8 +113,7 @@ func CheckAuthorizeMiddleware(authService AuthService) fiber.Handler {
 // CheckAdminMiddleware middlware check is user admin
 func CheckAdminMiddleware(userService UserService, userGroupService UserGroupService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		authCtx := ctx.UserContext()
-		session, ok := authCtx.Value(AuthSessionCtxKey).(dto.Session)
+		session, ok := ctx.Locals(AuthSessionKey).(dto.Session)
 		if !ok {
 			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
 		}

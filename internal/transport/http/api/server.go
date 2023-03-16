@@ -89,23 +89,26 @@ func (s *Server) Build() error {
 	userRoute.Get("/",
 		CheckAdminMiddleware(s.UserService, s.UserGroupService),
 		GetUserAllHandler(s.UserService))
-	userRoute.Get("/:id", GetUserByIDHandler(s.UserService))
-	userRoute.Put("/:id", UpdateUserHandler(s.UserService))
-	userRoute.Delete("/:id", DeleteUserHandler(s.UserService))
+	// by id route
+	userRoute = route.Group("/:id", CheckSessionWithRequestIDMiddleware())
+	userRoute.Get("/", GetUserByIDHandler(s.UserService))
+	userRoute.Put("/", UpdateUserHandler(s.UserService))
+	userRoute.Delete("/", DeleteUserHandler(s.UserService))
 
-	userGroupRoute := route.Group("/user-groups/")
+	userGroupRoute := route.Group("/user-groups/", CheckAuthorizeMiddleware(s.AuthService))
 	userGroupRoute.Post("/", CreateUserGroupHandler(s.UserGroupService))
 	userGroupRoute.Get("/",
 		CheckAdminMiddleware(s.UserService, s.UserGroupService),
 		GetUserGroupAllHandler(s.UserGroupService))
-	userGroupRoute.Get("/:id", GetUserGroupByIDHandler(s.UserGroupService))
-	userGroupRoute.Put("/:id", UpdateUserGroupHandler(s.UserGroupService))
-	userGroupRoute.Delete("/:id", DeleteUserGroupHandler(s.UserGroupService))
+	userGroupRoute = userGroupRoute.Group("/:id", CheckSessionWithRequestIDMiddleware())
+	userGroupRoute.Get("/", GetUserGroupByIDHandler(s.UserGroupService))
+	userGroupRoute.Put("/", UpdateUserGroupHandler(s.UserGroupService))
+	userGroupRoute.Delete("/", DeleteUserGroupHandler(s.UserGroupService))
 
 	auth := route.Group("/auth/")
 	auth.Post("/register", CreateUserHandler(s.UserService))
 	auth.Post("/login", LoginHandler(s.AuthService))
-	auth.Post("/logout", LogoutHandler(s.AuthService))
+	auth.Post("/logout", CheckAuthorizeMiddleware(s.AuthService), LogoutHandler(s.AuthService))
 
 	return nil
 }

@@ -6,5 +6,5 @@ const (
 	PerPageKey = "per_page"
 	PageKey    = "page"
 
-	AuthSessionCtxKey = "session-auth"
+	AuthSessionKey = "session-auth"
 )

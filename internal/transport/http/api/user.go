@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/petara94/go-auth/internal/repo"
 	"github.com/petara94/go-auth/internal/transport/http/api/dto"
+	"github.com/petara94/go-auth/internal/transport/http/api/pkg"
 	"net/http"
 	"strconv"
 )
@@ -84,24 +85,14 @@ func GetUserAllHandler(userService UserService) fiber.Handler {
 func GetUserByIDHandler(userService UserService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var (
-			user    *dto.User
-			err     error
-			id      uint64
-			authCtx = ctx.UserContext()
+			user *dto.User
+			err  error
+			id   uint64
 		)
 
-		session, ok := authCtx.Value(AuthSessionCtxKey).(dto.Session)
-		if !ok {
-			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
-		}
-
-		id, err = strconv.ParseUint(ctx.Params("id"), 10, 64)
+		id, err = pkg.ParseUInt64(ctx.Params("id"))
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
-		}
-
-		if session.UserID != id {
-			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAllowed))
 		}
 
 		user, err = userService.GetByID(id)
@@ -128,7 +119,7 @@ func UpdateUserHandler(userService UserService) fiber.Handler {
 			id   uint64
 		)
 
-		id, err = strconv.ParseUint(ctx.Params("id"), 10, 64)
+		id, err = pkg.ParseUInt64(ctx.Params("id"))
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
@@ -166,7 +157,7 @@ func DeleteUserHandler(userService UserService) fiber.Handler {
 			id  uint64
 		)
 
-		id, err = strconv.ParseUint(ctx.Params("id"), 10, 64)
+		id, err = pkg.ParseUInt64(ctx.Params("id"))
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
@@ -176,6 +167,6 @@ func DeleteUserHandler(userService UserService) fiber.Handler {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
 
-		return ctx.Status(http.StatusOK).JSON(RestErrorFromError(Success))
+		return ctx.Status(http.StatusOK).JSON(dto.SuccessMessage())
 	}
 }

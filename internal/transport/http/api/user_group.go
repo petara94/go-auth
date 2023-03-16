@@ -166,6 +166,6 @@ func DeleteUserGroupHandler(userGroupService UserGroupService) fiber.Handler {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
 
-		return ctx.Status(http.StatusOK).JSON(RestErrorFromError(Success))
+		return ctx.Status(http.StatusOK).JSON(dto.SuccessMessage())
 	}
 }
