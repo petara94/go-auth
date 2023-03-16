@@ -2,7 +2,7 @@ package repo
 
 import (
 	"context"
-	"database/sql"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/petara94/go-auth/internal/transport/http/api/dto"
 )
@@ -24,7 +24,7 @@ func (s *SessionStore) Create(session dto.Session) (*dto.Session, error) {
 	var createdSession dto.Session
 	err := result.Scan(&createdSession.Token, &createdSession.UserID, &createdSession.Expr)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, ErrNotFound
 		}
 		return nil, err
@@ -42,7 +42,7 @@ func (s *SessionStore) GetByToken(token string) (*dto.Session, error) {
 
 	err := result.Scan(&session.Token, &session.UserID, &session.Expr)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, ErrNotFound
 		}
 		return nil, err

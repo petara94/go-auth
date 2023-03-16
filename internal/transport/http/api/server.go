@@ -86,20 +86,23 @@ func (s *Server) Build() error {
 	route := s.srv.Group("/api/v1/")
 
 	userRoute := route.Group("/users/", CheckAuthorizeMiddleware(s.AuthService))
-	userRoute.Get("/", GetUserAllHandler(s.UserService))
+	userRoute.Get("/",
+		CheckAdminMiddleware(s.UserService, s.UserGroupService),
+		GetUserAllHandler(s.UserService))
 	userRoute.Get("/:id", GetUserByIDHandler(s.UserService))
 	userRoute.Put("/:id", UpdateUserHandler(s.UserService))
 	userRoute.Delete("/:id", DeleteUserHandler(s.UserService))
 
 	userGroupRoute := route.Group("/user-groups/")
 	userGroupRoute.Post("/", CreateUserGroupHandler(s.UserGroupService))
-	userGroupRoute.Get("/", GetUserGroupAllHandler(s.UserGroupService))
+	userGroupRoute.Get("/",
+		CheckAdminMiddleware(s.UserService, s.UserGroupService),
+		GetUserGroupAllHandler(s.UserGroupService))
 	userGroupRoute.Get("/:id", GetUserGroupByIDHandler(s.UserGroupService))
 	userGroupRoute.Put("/:id", UpdateUserGroupHandler(s.UserGroupService))
 	userGroupRoute.Delete("/:id", DeleteUserGroupHandler(s.UserGroupService))
 
 	auth := route.Group("/auth/")
-	// AuthService
 	auth.Post("/register", CreateUserHandler(s.UserService))
 	auth.Post("/login", LoginHandler(s.AuthService))
 	auth.Post("/logout", LogoutHandler(s.AuthService))

@@ -31,6 +31,12 @@ func NewUserService(ctx context.Context, userRepository UserRepository, logger z
 }
 
 func (s *UserService) Create(user dto.User) (*dto.User, error) {
+	// check if user with same login already exists
+	_, err := s.userRepository.GetByLogin(user.Login)
+	if err == nil {
+		return nil, ErrLoginAlreadyExists
+	}
+
 	user.Password = pkg.HashPassword(user.Password)
 	id, err := s.userRepository.Create(user)
 	if err != nil {
