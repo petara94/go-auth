@@ -49,5 +49,5 @@ database.stop:
 .PHONY: database.stop
 
 database.clear:
-	docker-compose -f ./test/docker-compose.yml down
+	docker-compose -f ./test/docker-compose.yml down -v
 .PHONY: database.clear
