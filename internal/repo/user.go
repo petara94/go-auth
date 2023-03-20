@@ -2,12 +2,10 @@ package repo
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/petara94/go-auth/internal/transport/http/api/dto"
+	"github.com/petara94/go-auth/internal/services/dto"
 )
 
 type UserStore struct {
@@ -20,15 +18,11 @@ func NewUserStore(ctx context.Context, db *pgxpool.Pool) *UserStore {
 }
 
 func (u *UserStore) Create(user dto.User) (uint64, error) {
-	const q = "INSERT INTO public.users(login, password) VALUES($1, $2) RETURNING id"
+	const q = "INSERT INTO public.users(login, password, is_admin, is_blocked, check_password) VALUES ($1, $2, $3, $4, $5) RETURNING id"
 
 	var id uint64
 
-	err := u.db.QueryRow(
-		u.ctx, q,
-		user.Login,
-		[]byte(user.Password),
-	).Scan(&id)
+	err := u.db.QueryRow(u.ctx, q, user.Login, user.Password, user.IsAdmin, user.IsBlocked, user.CheckPassword).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("sql query error: %w", err)
 	}
@@ -36,62 +30,59 @@ func (u *UserStore) Create(user dto.User) (uint64, error) {
 	return id, nil
 }
 
-func (u *UserStore) LinkToGroup(id, groupId uint64) error {
-	const q = "UPDATE public.users set user_group_id = $1 where id = $2"
-
-	_, err := u.db.Query(u.ctx, q, id, groupId)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (u *UserStore) GetByID(id uint64) (*dto.User, error) {
-	const q = "SELECT id, login, password, user_group_id from public.users where id = $1"
+	const q = "SELECT id, login, password, is_admin, is_blocked, check_password FROM public.users WHERE id = $1"
 
 	var (
 		user = dto.User{}
-		pass []byte
 	)
 
 	result, err := u.db.Query(u.ctx, q, id)
 	if err != nil {
 		return nil, err
 	}
+
 	if !result.Next() {
 		return nil, ErrNotFound
 	}
 
-	err = result.Scan(&user.ID, &user.Login, &pass, &user.UserGroupID)
+	err = result.Scan(
+		&user.ID, &user.Login, &user.Password, &user.IsAdmin, &user.IsBlocked, &user.CheckPassword,
+	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, ErrNotFound
 		}
 		return nil, err
 	}
 
-	user.Password = string(pass)
-
 	return &user, nil
 }
 
-func (u *UserStore) Get(perPage, page int) ([]*dto.User, error) {
-	const q = "SELECT id, login, password, user_group_id from public.users limit $1 offset $2"
+func (u *UserStore) GetWithPagination(perPage, page int) ([]*dto.User, error) {
+	const q = "SELECT id, login, password, is_admin, is_blocked, check_password FROM public.users LIMIT $1 OFFSET $2"
 
-	var users = make([]*dto.User, 0, perPage)
+	var (
+		users = make([]*dto.User, 0, perPage)
+		user  = dto.User{}
+	)
 
-	result, err := u.db.Query(u.ctx, q, perPage, page*perPage)
+	result, err := u.db.Query(u.ctx, q, perPage, perPage*(page-1))
 	if err != nil {
-		return nil, fmt.Errorf("sql query error: %w", err)
+		return nil, err
 	}
 
 	for result.Next() {
-		user := dto.User{}
-		err = result.Scan(&user.ID, &user.Login, &user.Password, &user.UserGroupID)
+		err = result.Scan(
+			&user.ID, &user.Login, &user.Password, &user.IsAdmin, &user.IsBlocked, &user.CheckPassword,
+		)
 		if err != nil {
+			if err == pgx.ErrNoRows {
+				return nil, ErrNotFound
+			}
 			return nil, err
 		}
+
 		users = append(users, &user)
 	}
 
@@ -99,13 +90,24 @@ func (u *UserStore) Get(perPage, page int) ([]*dto.User, error) {
 }
 
 func (u *UserStore) GetByLogin(login string) (*dto.User, error) {
-	const q = "SELECT id, login, password, user_group_id FROM public.users WHERE login = $1::text"
+	const q = "SELECT id, login, password, is_admin, is_blocked, check_password FROM public.users WHERE login = $1"
 
-	var user = dto.User{}
+	var (
+		user = dto.User{}
+	)
 
-	row := u.db.QueryRow(u.ctx, q, login)
+	result, err := u.db.Query(u.ctx, q, login)
+	if err != nil {
+		return nil, err
+	}
 
-	err := row.Scan(&user.ID, &user.Login, &user.Password, &user.UserGroupID)
+	if !result.Next() {
+		return nil, ErrNotFound
+	}
+
+	err = result.Scan(
+		&user.ID, &user.Login, &user.Password, &user.IsAdmin, &user.IsBlocked, &user.CheckPassword,
+	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, ErrNotFound
@@ -117,15 +119,18 @@ func (u *UserStore) GetByLogin(login string) (*dto.User, error) {
 }
 
 func (u *UserStore) Update(user dto.User) (*dto.User, error) {
-	const q = "UPDATE public.users SET login = $1, password = $2, user_group_id = $3 WHERE id = $4 RETURNING id, login, password, user_group_id"
+	const q = "UPDATE public.users SET login = $1, password = $2, is_admin = $3, is_blocked = $4, check_password = $5 WHERE id = $6 RETURNING id, login, password, is_admin, is_blocked, check_password"
 
-	var updatedUser = dto.User{}
+	var (
+		updatedUser = dto.User{}
+	)
 
-	row := u.db.QueryRow(u.ctx, q, user.Login, user.Password, user.UserGroupID, user.ID)
+	err := u.db.QueryRow(u.ctx, q, user.Login, user.Password, user.IsAdmin, user.IsBlocked, user.CheckPassword, user.ID).Scan(
+		&updatedUser.ID, &updatedUser.Login, &updatedUser.Password, &updatedUser.IsAdmin, &updatedUser.IsBlocked, &updatedUser.CheckPassword,
+	)
 
-	err := row.Scan(&updatedUser.ID, &updatedUser.Login, &updatedUser.Password, &updatedUser.UserGroupID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if err == pgx.ErrNoRows {
 			return nil, ErrNotFound
 		}
 		return nil, err

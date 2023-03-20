@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	dto "github.com/petara94/go-auth/internal/transport/http/api/dto"
+	dto "github.com/petara94/go-auth/internal/services/dto"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -273,49 +273,6 @@ func (_c *UserRepository_GetByLogin_Call) Return(_a0 *dto.User, _a1 error) *User
 }
 
 func (_c *UserRepository_GetByLogin_Call) RunAndReturn(run func(string) (*dto.User, error)) *UserRepository_GetByLogin_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// LinkToGroup provides a mock function with given fields: id, groupId
-func (_m *UserRepository) LinkToGroup(id uint64, groupId uint64) error {
-	ret := _m.Called(id, groupId)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(uint64, uint64) error); ok {
-		r0 = rf(id, groupId)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// UserRepository_LinkToGroup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LinkToGroup'
-type UserRepository_LinkToGroup_Call struct {
-	*mock.Call
-}
-
-// LinkToGroup is a helper method to define mock.On call
-//   - id uint64
-//   - groupId uint64
-func (_e *UserRepository_Expecter) LinkToGroup(id interface{}, groupId interface{}) *UserRepository_LinkToGroup_Call {
-	return &UserRepository_LinkToGroup_Call{Call: _e.mock.On("LinkToGroup", id, groupId)}
-}
-
-func (_c *UserRepository_LinkToGroup_Call) Run(run func(id uint64, groupId uint64)) *UserRepository_LinkToGroup_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(uint64), args[1].(uint64))
-	})
-	return _c
-}
-
-func (_c *UserRepository_LinkToGroup_Call) Return(_a0 error) *UserRepository_LinkToGroup_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *UserRepository_LinkToGroup_Call) RunAndReturn(run func(uint64, uint64) error) *UserRepository_LinkToGroup_Call {
 	_c.Call.Return(run)
 	return _c
 }

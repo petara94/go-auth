@@ -1,28 +1,30 @@
-CREATE TABLE IF NOT EXISTS user_groups
-(
-    id       SERIAL PRIMARY KEY,
-    name     TEXT    NOT NULL,
-    is_admin BOOLEAN NOT NULL DEFAULT false
-);
-
+-- create table users
 CREATE TABLE IF NOT EXISTS users
 (
-    id            SERIAL PRIMARY KEY,
-    login         TEXT NOT NULL,
-    password      TEXT NOT NULL,
-    user_group_id bigint REFERENCES user_groups (id)
+    id             BIGSERIAL PRIMARY KEY,
+    login          TEXT    NOT NULL,
+    password       TEXT    NOT NULL,
+    check_password BOOLEAN NOT NULL DEFAULT TRUE,
+    is_admin       BOOLEAN NOT NULL DEFAULT FALSE,
+    is_blocked     BOOLEAN NOT NULL DEFAULT FALSE
 );
 
+-- login unique constraint
+ALTER TABLE users
+    ADD CONSTRAINT users_login_ukey
+        UNIQUE (login);
+
+-- create table sessions
 CREATE TABLE IF NOT EXISTS sessions
 (
     token   TEXT PRIMARY KEY,
-    user_id INTEGER NOT NULL,
+    user_id BIGINT NOT NULL,
     expr    TIMESTAMP
 );
 
-alter table users
-    add constraint users_user_groups_id_fk
-        foreign key (user_group_id) references user_groups (id);
-
-alter table sessions
-    add foreign key (user_id) references users (id);
+-- foreign keys sessions -> users
+ALTER TABLE sessions
+    ADD CONSTRAINT sessions_user_id_fkey
+        FOREIGN KEY (user_id)
+            REFERENCES users (id)
+            ON DELETE CASCADE;

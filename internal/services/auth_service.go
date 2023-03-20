@@ -2,10 +2,11 @@ package services
 
 import (
 	"context"
+	"github.com/petara94/go-auth/internal/services/dto"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/petara94/go-auth/internal/services/pkg"
-	"github.com/petara94/go-auth/internal/transport/http/api/dto"
-	"time"
 )
 
 //go:generate mockery --name SessionRepository
@@ -13,6 +14,7 @@ type SessionRepository interface {
 	Create(session dto.Session) (*dto.Session, error)
 	GetByToken(token string) (*dto.Session, error)
 	DeleteByToken(token string) error
+	DeleteByUserID(userID uint64) error
 }
 
 type AuthService struct {
@@ -38,6 +40,7 @@ func (s *AuthService) Login(auth dto.Auth) (*dto.Session, error) {
 	session, err := s.sessionRepository.Create(dto.Session{
 		Token:  uuid.NewString(),
 		UserID: userByLogin.ID,
+		Expr:   auth.TTL,
 	})
 	if err != nil {
 		return nil, err
@@ -57,10 +60,14 @@ func (s *AuthService) Get(token string) (*dto.Session, error) {
 	}
 
 	if session.Expr != nil {
-		if session.Expr.Unix() > time.Now().Unix() {
+		if session.Expr.Unix() < time.Now().Unix() {
 			return nil, ErrSessionExpired
 		}
 	}
 
 	return session, nil
+}
+
+func (s *AuthService) DeleteByUserID(userID uint64) error {
+	return s.sessionRepository.DeleteByUserID(userID)
 }

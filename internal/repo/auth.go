@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/petara94/go-auth/internal/transport/http/api/dto"
+	"github.com/petara94/go-auth/internal/services/dto"
 )
 
 type SessionStore struct {
@@ -55,6 +55,17 @@ func (s *SessionStore) DeleteByToken(token string) error {
 	const q = "DELETE FROM public.sessions WHERE token = $1"
 
 	_, err := s.db.Exec(s.ctx, q, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SessionStore) DeleteByUserID(userID uint64) error {
+	const q = "DELETE FROM public.sessions WHERE user_id = $1"
+
+	_, err := s.db.Exec(s.ctx, q, userID)
 	if err != nil {
 		return err
 	}

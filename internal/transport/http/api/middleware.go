@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/petara94/go-auth/assets"
-	"github.com/petara94/go-auth/internal/transport/http/api/dto"
+	"github.com/petara94/go-auth/internal/services/dto"
 	"github.com/petara94/go-auth/internal/transport/http/api/pkg"
 	"go.uber.org/zap"
 	"net/http"
@@ -78,7 +78,7 @@ func CheckAuthorizeMiddleware(authService AuthService) fiber.Handler {
 		}
 
 		if session.Expr != nil {
-			if time.Now().Unix() < session.Expr.Unix() {
+			if time.Now().Unix() > session.Expr.Unix() {
 				return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrTokenExpired))
 			}
 		}
@@ -111,7 +111,7 @@ func CheckSessionWithRequestIDMiddleware() fiber.Handler {
 }
 
 // CheckAdminMiddleware middlware check is user admin
-func CheckAdminMiddleware(userService UserService, userGroupService UserGroupService) fiber.Handler {
+func CheckAdminMiddleware(userService UserService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		session, ok := ctx.Locals(AuthSessionKey).(dto.Session)
 		if !ok {
@@ -119,23 +119,12 @@ func CheckAdminMiddleware(userService UserService, userGroupService UserGroupSer
 		}
 
 		// get user from session
-		user, err := userService.GetByID(session.UserID)
+		_, err := userService.GetByID(session.UserID)
 		if err != nil {
 			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
 		}
 
-		// get usergroup from user if exist
-		if user.UserGroupID != nil {
-			userGroup, err := userGroupService.GetByID(*user.UserGroupID)
-			if err != nil {
-				return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
-			}
-
-			// check if usergroup is admin
-			if userGroup.IsAdmin {
-				return ctx.Next()
-			}
-		}
+		// TODO: check if user is admin
 
 		return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
 	}

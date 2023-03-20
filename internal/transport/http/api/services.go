@@ -9,15 +9,13 @@ import (
 )
 
 type Services struct {
-	UserService      UserService
-	UserGroupService UserGroupService
-	AuthService      AuthService
+	UserService UserService
+	AuthService AuthService
 }
 
 func NewServices(ctx context.Context, pool *pgxpool.Pool, logger zap.Logger) *Services {
 	return &Services{
-		UserService:      services.NewUserService(ctx, repo.NewUserStore(ctx, pool), logger),
-		UserGroupService: services.NewUserGroupService(ctx, repo.NewUserGroupRepository(ctx, pool), logger),
-		AuthService:      services.NewAuthService(ctx, repo.NewSessionStore(ctx, pool), repo.NewUserStore(ctx, pool)),
+		UserService: services.NewUserService(ctx, repo.NewUserStore(ctx, pool), logger),
+		AuthService: services.NewAuthService(ctx, repo.NewSessionStore(ctx, pool), repo.NewUserStore(ctx, pool)),
 	}
 }

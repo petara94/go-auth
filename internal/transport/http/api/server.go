@@ -2,35 +2,32 @@ package api
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/petara94/go-auth/internal/transport/http/api/dto"
+	serv_dto "github.com/petara94/go-auth/internal/services/dto"
 	"go.uber.org/zap"
 )
 
-type ID uint64
-
-//go:generate mockery --name UserService
 type UserService interface {
-	Create(u dto.User) (*dto.User, error)
-	GetByID(id uint64) (*dto.User, error)
-	Get(perPage, page int) ([]*dto.User, error)
-	Update(u dto.User) (*dto.User, error)
+	Create(u serv_dto.User) (*serv_dto.User, error)
+	CreateWithLoginAndPassword(login, password string) (*serv_dto.User, error)
+	GetByID(id uint64) (*serv_dto.User, error)
+	GetByLogin(login string) (*serv_dto.User, error)
+	UpdatePassword(id uint64, oldPassword, newPassword string) error
 	Delete(id uint64) error
+
+	// Admin access
+	CreateWithLogin(login string) (*serv_dto.User, error)
+	GetWithPagination(perPage, page int) ([]*serv_dto.User, error)
+	SetAdmin(id uint64, isAdnmin bool) error
+	SetCheckPassword(id uint64, usePasswordConstraint bool) error
+	SetBlockUser(id uint64, isBlock bool) error
+	Update(u serv_dto.User) (*serv_dto.User, error)
 }
 
-//go:generate mockery --name UserGroupService
-type UserGroupService interface {
-	Create(u dto.UserGroup) (*dto.UserGroup, error)
-	GetByID(id uint64) (*dto.UserGroup, error)
-	Get(perPage, page int) ([]*dto.UserGroup, error)
-	Update(u dto.UserGroup) (*dto.UserGroup, error)
-	Delete(id uint64) error
-}
-
-//go:generate mockery --name AuthService
 type AuthService interface {
-	Login(auth dto.Auth) (*dto.Session, error)
-	Get(token string) (*dto.Session, error)
-	Logout(session dto.Session) error
+	Login(auth serv_dto.Auth) (*serv_dto.Session, error)
+	Get(token string) (*serv_dto.Session, error)
+	Logout(session serv_dto.Session) error
+	DeleteByUserID(userID uint64) error
 }
 
 type Server struct {
@@ -39,9 +36,8 @@ type Server struct {
 
 	logger zap.Logger
 
-	UserService      UserService
-	UserGroupService UserGroupService
-	AuthService      AuthService
+	UserService UserService
+	AuthService AuthService
 }
 
 type ServerConfig struct {
@@ -58,11 +54,10 @@ func NewServer(c *ServerConfig) *Server {
 		srv: fiber.New(fiber.Config{
 			AppName: c.AppName,
 		}),
-		logger:           c.Logger,
-		conf:             c,
-		UserService:      c.Services.UserService,
-		UserGroupService: c.Services.UserGroupService,
-		AuthService:      c.Services.AuthService,
+		logger:      c.Logger,
+		conf:        c,
+		UserService: c.Services.UserService,
+		AuthService: c.Services.AuthService,
 	}
 }
 
@@ -78,6 +73,24 @@ func (s *Server) Run() error {
 func (s *Server) Build() error {
 	s.srv.Use(LoggerMiddleware(s.logger))
 
+	// create superuser
+	_, err := s.UserService.GetByLogin("admin")
+	if err != nil {
+		_, err = s.UserService.Create(serv_dto.User{
+			Login:         "admin", // default login
+			Password:      "admin", // default password
+			IsAdmin:       true,    // admin
+			CheckPassword: false,   // no need to check password
+		})
+
+		if err != nil {
+			s.logger.Error("create superuser", zap.Error(err))
+			return err
+		}
+
+		s.logger.Info("superuser created")
+	}
+
 	s.srv.Get("/swagger/*", SwaggerMiddleware())
 	s.srv.Get("/", func(ctx *fiber.Ctx) error {
 		return ctx.Redirect("/swagger/")
@@ -85,30 +98,13 @@ func (s *Server) Build() error {
 
 	route := s.srv.Group("/api/v1/")
 
-	userRoute := route.Group("/users/", CheckAuthorizeMiddleware(s.AuthService))
-	userRoute.Get("/",
-		CheckAdminMiddleware(s.UserService, s.UserGroupService),
-		GetUserAllHandler(s.UserService))
-	// by id route
-	userRoute = route.Group("/:id", CheckSessionWithRequestIDMiddleware())
-	userRoute.Get("/", GetUserByIDHandler(s.UserService))
-	userRoute.Put("/", UpdateUserHandler(s.UserService))
-	userRoute.Delete("/", DeleteUserHandler(s.UserService))
+	route.Post("/auth/login", LoginHandler(s.AuthService))
+	route.Post("/auth/register", RegisterHandler(s.UserService))
 
-	userGroupRoute := route.Group("/user-groups/", CheckAuthorizeMiddleware(s.AuthService))
-	userGroupRoute.Post("/", CreateUserGroupHandler(s.UserGroupService))
-	userGroupRoute.Get("/",
-		CheckAdminMiddleware(s.UserService, s.UserGroupService),
-		GetUserGroupAllHandler(s.UserGroupService))
-	userGroupRoute = userGroupRoute.Group("/:id", CheckSessionWithRequestIDMiddleware())
-	userGroupRoute.Get("/", GetUserGroupByIDHandler(s.UserGroupService))
-	userGroupRoute.Put("/", UpdateUserGroupHandler(s.UserGroupService))
-	userGroupRoute.Delete("/", DeleteUserGroupHandler(s.UserGroupService))
-
-	auth := route.Group("/auth/")
-	auth.Post("/register", CreateUserHandler(s.UserService))
-	auth.Post("/login", LoginHandler(s.AuthService))
-	auth.Post("/logout", CheckAuthorizeMiddleware(s.AuthService), LogoutHandler(s.AuthService))
+	registred := route.Use(CheckAuthorizeMiddleware(s.AuthService))
+	registred.Post("/auth/logout", LogoutHandler(s.AuthService))
+	registred.Get("/users/me", GetUserSelfHandler(s.UserService))
+	registred.Post("/users/me/change-pass", UserSelfChangePasswordHandler(s.UserService))
 
 	return nil
 }
