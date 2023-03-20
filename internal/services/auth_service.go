@@ -11,6 +11,7 @@ import (
 
 //go:generate mockery --name SessionRepository
 type SessionRepository interface {
+	GetWithPagination(perPage, page int) ([]*dto.Session, error)
 	Create(session dto.Session) (*dto.Session, error)
 	GetByToken(token string) (*dto.Session, error)
 	DeleteByToken(token string) error
@@ -51,6 +52,15 @@ func (s *AuthService) Login(auth dto.Auth) (*dto.Session, error) {
 
 func (s *AuthService) Logout(session dto.Session) error {
 	return s.sessionRepository.DeleteByToken(session.Token)
+}
+
+func (s *AuthService) GetWithPagination(perPage, page int) ([]*dto.Session, error) {
+	// check pagination
+	if perPage < 1 || page < 1 {
+		return nil, ErrWrongPagination
+	}
+
+	return s.sessionRepository.GetWithPagination(perPage, page)
 }
 
 func (s *AuthService) Get(token string) (*dto.Session, error) {

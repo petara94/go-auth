@@ -30,26 +30,39 @@ func main() {
 		lg.Error("load config failed", zap.Error(err))
 	}
 
-	if err = run(cfg, *lg); err != nil {
+	if err = run(cfg, lg); err != nil {
 		lg.Error("", zap.Error(err))
 	}
 }
 
-func run(cfg *config.AppConfig, logger zap.Logger) error {
+func run(cfg *config.AppConfig, logger *zap.Logger) error {
 	if cfg == nil {
 		return ErrNilConfig
 	}
 
 	ctx := context.Background()
 
-	pool, err := pgxpool.New(ctx, cfg.DBConf.URL)
+	poolCfg, err := pgxpool.ParseConfig(cfg.DBConf.URL)
+	if err != nil {
+		return err
+	}
+
+	poolCfg.MaxConns = cfg.DBConf.MaxConns
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
 	if err != nil {
 		logger.Error("db connection", zap.Error(err))
 		return err
 	}
 	defer pool.Close()
 
-	err = migrations.MigrateDatabase(&cfg.DBConf, logger)
+	err = pool.Ping(ctx)
+	if err != nil {
+		logger.Error("db ping", zap.Error(err))
+		return err
+	}
+
+	err = migrations.MigrateDatabase(&cfg.DBConf, *logger)
 	if err != nil {
 		logger.Error("migrations filed", zap.Error(err))
 		return err
@@ -58,8 +71,8 @@ func run(cfg *config.AppConfig, logger zap.Logger) error {
 	server := api.NewServer(&api.ServerConfig{
 		Port:     cfg.API.Port,
 		AppName:  appName,
-		Services: api.NewServices(ctx, pool, logger),
-		Logger:   logger,
+		Services: api.NewServices(ctx, pool, *logger),
+		Logger:   *logger,
 	})
 
 	err = server.Build()

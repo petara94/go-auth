@@ -5,7 +5,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/petara94/go-auth/assets"
 	"github.com/petara94/go-auth/internal/services/dto"
-	"github.com/petara94/go-auth/internal/transport/http/api/pkg"
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
@@ -89,27 +88,6 @@ func CheckAuthorizeMiddleware(authService AuthService) fiber.Handler {
 	}
 }
 
-// CheckSessionWithRequestIDMiddleware middleware check session user id with request id
-func CheckSessionWithRequestIDMiddleware() fiber.Handler {
-	return func(ctx *fiber.Ctx) error {
-		session, ok := ctx.Locals(AuthSessionKey).(dto.Session)
-		if !ok {
-			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
-		}
-
-		id, err := pkg.ParseUInt64(ctx.Params("id"))
-		if err != nil {
-			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
-		}
-
-		if session.UserID != id {
-			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
-		}
-
-		return ctx.Next()
-	}
-}
-
 // CheckAdminMiddleware middlware check is user admin
 func CheckAdminMiddleware(userService UserService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
@@ -119,14 +97,16 @@ func CheckAdminMiddleware(userService UserService) fiber.Handler {
 		}
 
 		// get user from session
-		_, err := userService.GetByID(session.UserID)
+		user, err := userService.GetByID(session.UserID)
 		if err != nil {
 			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
 		}
 
-		// TODO: check if user is admin
+		if !user.IsAdmin {
+			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAllowed))
+		}
 
-		return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAuthorised))
+		return ctx.Next()
 	}
 }
 

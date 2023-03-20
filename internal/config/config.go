@@ -16,7 +16,8 @@ type API struct {
 	AppName string `yaml:"app_name"`
 }
 type DBConf struct {
-	URL string `yaml:"url"`
+	URL      string `yaml:"url"`
+	MaxConns int32  `yaml:"max_conns"`
 }
 
 func ReadConfigFromFile(filename string) (*AppConfig, error) {

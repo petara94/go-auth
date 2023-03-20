@@ -24,6 +24,7 @@ type UserService interface {
 }
 
 type AuthService interface {
+	GetWithPagination(perPage, page int) ([]*serv_dto.Session, error)
 	Login(auth serv_dto.Auth) (*serv_dto.Session, error)
 	Get(token string) (*serv_dto.Session, error)
 	Logout(session serv_dto.Session) error
@@ -98,13 +99,18 @@ func (s *Server) Build() error {
 
 	route := s.srv.Group("/api/v1/")
 
-	route.Post("/auth/login", LoginHandler(s.AuthService))
+	route.Post("/auth/login", LoginHandler(s.AuthService, &s.logger))
 	route.Post("/auth/register", RegisterHandler(s.UserService))
 
 	registred := route.Use(CheckAuthorizeMiddleware(s.AuthService))
 	registred.Post("/auth/logout", LogoutHandler(s.AuthService))
 	registred.Get("/users/me", GetUserSelfHandler(s.UserService))
 	registred.Post("/users/me/change-pass", UserSelfChangePasswordHandler(s.UserService))
+
+	admin := registred.Use(CheckAdminMiddleware(s.UserService))
+
+	admin.Get("/users", GetAllUsersHandler(s.UserService))
+	admin.Get("/sessions", GetAllSessionsHandler(s.AuthService))
 
 	return nil
 }

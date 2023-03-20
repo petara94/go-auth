@@ -38,6 +38,7 @@ func (u *UserStore) GetByID(id uint64) (*dto.User, error) {
 	)
 
 	result, err := u.db.Query(u.ctx, q, id)
+	defer result.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -62,17 +63,16 @@ func (u *UserStore) GetByID(id uint64) (*dto.User, error) {
 func (u *UserStore) GetWithPagination(perPage, page int) ([]*dto.User, error) {
 	const q = "SELECT id, login, password, is_admin, is_blocked, check_password FROM public.users LIMIT $1 OFFSET $2"
 
-	var (
-		users = make([]*dto.User, 0, perPage)
-		user  = dto.User{}
-	)
+	var users = make([]*dto.User, 0, perPage)
 
 	result, err := u.db.Query(u.ctx, q, perPage, perPage*(page-1))
+	defer result.Close()
 	if err != nil {
 		return nil, err
 	}
 
 	for result.Next() {
+		user := dto.User{}
 		err = result.Scan(
 			&user.ID, &user.Login, &user.Password, &user.IsAdmin, &user.IsBlocked, &user.CheckPassword,
 		)
@@ -97,6 +97,7 @@ func (u *UserStore) GetByLogin(login string) (*dto.User, error) {
 	)
 
 	result, err := u.db.Query(u.ctx, q, login)
+	defer result.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -125,15 +126,15 @@ func (u *UserStore) Update(user dto.User) (*dto.User, error) {
 		updatedUser = dto.User{}
 	)
 
-	err := u.db.QueryRow(u.ctx, q, user.Login, user.Password, user.IsAdmin, user.IsBlocked, user.CheckPassword, user.ID).Scan(
+	row := u.db.QueryRow(u.ctx, q, user.Login, user.Password, user.IsAdmin, user.IsBlocked, user.CheckPassword, user.ID).Scan(
 		&updatedUser.ID, &updatedUser.Login, &updatedUser.Password, &updatedUser.IsAdmin, &updatedUser.IsBlocked, &updatedUser.CheckPassword,
 	)
 
-	if err != nil {
-		if err == pgx.ErrNoRows {
+	if row != nil {
+		if row == pgx.ErrNoRows {
 			return nil, ErrNotFound
 		}
-		return nil, err
+		return nil, row
 	}
 
 	return &updatedUser, nil
