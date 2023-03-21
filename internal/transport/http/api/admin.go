@@ -134,27 +134,63 @@ func GetUserByIDHandler(userService UserService) fiber.Handler {
 	}
 }
 
-func UpdateUserHandler(userService UserService) fiber.Handler {
+func UpdateUserByIDHandler(userService UserService, authService AuthService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var (
-			user = &serv_dto.User{}
-			err  error
-			id   uint64
+			putUser = &serv_dto.User{}
+			err     error
+			id      uint64
 		)
+
+		admin, ok := ctx.Locals(UserAdminKey).(serv_dto.User)
+		if !ok {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("putUser not found"))
+		}
 
 		id, err = pkg.ParseUInt64(ctx.Params("id"))
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
 
-		err = ctx.BodyParser(user)
+		err = ctx.BodyParser(putUser)
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
+		putUser.ID = id
 
-		user.ID = id
+		// admin can't change login, isBlocked, isAdmin for himself
+		if admin.Login == AdminLoginDefault && admin.ID == putUser.ID {
+			putUser.Login = AdminLoginDefault
+			putUser.IsAdmin = true
+			putUser.Login = AdminLoginDefault
+			putUser.IsBlocked = false
+		}
 
-		user, err = userService.Update(*user)
+		if admin.Login != AdminLoginDefault && admin.ID == putUser.ID {
+			putUser.IsAdmin = true
+			putUser.IsBlocked = false
+		}
+
+		if admin.Login != AdminLoginDefault && admin.ID != putUser.ID {
+			currentUser, err := userService.GetByID(putUser.ID)
+			if err != nil {
+				return ctx.Status(http.StatusNotFound).JSON(RestErrorFromError(err))
+			}
+
+			if currentUser.IsAdmin {
+				return ctx.Status(http.StatusForbidden).JSON(RestErrorf("only `admin` can change admins"))
+			}
+		}
+
+		// if blocked, then logout
+		if putUser.IsBlocked {
+			err = authService.DeleteByUserID(putUser.ID)
+			if err != nil {
+				return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+			}
+		}
+
+		putUser, err = userService.Update(*putUser)
 		if err != nil {
 			if errors.Is(err, repo.ErrNotFound) {
 				return ctx.Status(http.StatusNotFound).JSON(RestErrorFromError(err))
@@ -162,27 +198,39 @@ func UpdateUserHandler(userService UserService) fiber.Handler {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
 
-		data, err := json.Marshal(user)
-		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(RestErrorFromError(err))
-		}
-
-		SendJsonb(ctx, data)
-
-		return nil
+		return ctx.Status(http.StatusOK).JSON(putUser)
 	}
 }
 
-func DeleteUserHandler(userService UserService) fiber.Handler {
+func DeleteUserByIDHandler(userService UserService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var (
 			err error
 			id  uint64
 		)
 
+		admin, ok := ctx.Locals("user").(serv_dto.User)
+		if !ok {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("user not found"))
+		}
+
 		id, err = pkg.ParseUInt64(ctx.Params("id"))
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		if admin.Login == AdminLoginDefault || admin.ID == id {
+			return ctx.Status(http.StatusForbidden).JSON(RestErrorf("admin can't delete himself"))
+		}
+
+		user, err := userService.GetByID(id)
+		if err != nil {
+			return ctx.Status(http.StatusOK).JSON(dto.SuccessMessage())
+		}
+
+		// another admin can't delete main admin
+		if user.Login == AdminLoginDefault {
+			return ctx.Status(http.StatusForbidden).JSON(RestErrorf("main admin can't be deleted"))
 		}
 
 		err = userService.Delete(id)

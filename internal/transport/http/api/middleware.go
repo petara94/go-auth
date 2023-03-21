@@ -106,6 +106,8 @@ func CheckAdminMiddleware(userService UserService) fiber.Handler {
 			return ctx.Status(http.StatusForbidden).JSON(RestErrorFromError(ErrNotAllowed))
 		}
 
+		ctx.Locals(UserAdminKey, *user)
+
 		return ctx.Next()
 	}
 }

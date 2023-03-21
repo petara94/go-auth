@@ -7,4 +7,8 @@ const (
 	PageKey    = "page"
 
 	AuthSessionKey = "session-auth"
+	UserAdminKey   = "user-admin"
+
+	AdminLoginDefault    = "admin"
+	AdminPasswordDefault = "admin"
 )

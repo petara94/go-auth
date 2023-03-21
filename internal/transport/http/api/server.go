@@ -75,13 +75,13 @@ func (s *Server) Build() error {
 	s.srv.Use(LoggerMiddleware(s.logger))
 
 	// create superuser
-	_, err := s.UserService.GetByLogin("admin")
+	_, err := s.UserService.GetByLogin(AdminLoginDefault)
 	if err != nil {
 		_, err = s.UserService.Create(serv_dto.User{
-			Login:         "admin", // default login
-			Password:      "admin", // default password
-			IsAdmin:       true,    // admin
-			CheckPassword: false,   // no need to check password
+			Login:         AdminLoginDefault,    // default login
+			Password:      AdminPasswordDefault, // default password
+			IsAdmin:       true,                 // admin
+			CheckPassword: false,                // no need to check password
 		})
 
 		if err != nil {
@@ -99,7 +99,7 @@ func (s *Server) Build() error {
 
 	route := s.srv.Group("/api/v1/")
 
-	route.Post("/auth/login", LoginHandler(s.AuthService, &s.logger))
+	route.Post("/auth/login", LoginHandler(s.AuthService))
 	route.Post("/auth/register", RegisterHandler(s.UserService))
 
 	registred := route.Use(CheckAuthorizeMiddleware(s.AuthService))
@@ -109,8 +109,11 @@ func (s *Server) Build() error {
 
 	admin := registred.Use(CheckAdminMiddleware(s.UserService))
 
-	admin.Get("/users", GetAllUsersHandler(s.UserService))
 	admin.Get("/sessions", GetAllSessionsHandler(s.AuthService))
+	admin.Get("/users", GetAllUsersHandler(s.UserService))
+	admin.Get("/users/:id", GetUserByIDHandler(s.UserService))
+	admin.Delete("/users/:id", DeleteUserByIDHandler(s.UserService))
+	admin.Put("/users/:id", UpdateUserByIDHandler(s.UserService, s.AuthService))
 
 	return nil
 }

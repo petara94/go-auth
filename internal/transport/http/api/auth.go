@@ -6,12 +6,10 @@ import (
 	serv_dto "github.com/petara94/go-auth/internal/services/dto"
 	"github.com/petara94/go-auth/internal/transport/http/api/dto"
 	"github.com/petara94/go-auth/internal/transport/http/api/mappers"
-	"go.uber.org/zap"
 	"net/http"
 )
 
-func LoginHandler(authService AuthService, lg *zap.Logger) fiber.Handler {
-	i := 0
+func LoginHandler(authService AuthService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var (
 			auth = &dto.LoginReq{}
@@ -22,14 +20,11 @@ func LoginHandler(authService AuthService, lg *zap.Logger) fiber.Handler {
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
-		i++
-		lg.Debug("login", zap.String("login", auth.Login), zap.Int("i", i))
+
 		session, err := authService.Login(*mappers.LoginReqToAuth(auth))
 		if err != nil {
-			lg.Error("login", zap.Error(err), zap.Int("i", i))
 			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
 		}
-		lg.Debug("logged in", zap.String("login", auth.Login), zap.String("session", session.Token), zap.Int("i", i))
 
 		return ctx.Status(http.StatusOK).JSON(session)
 	}
