@@ -1,11 +1,7 @@
 package dto
 
-type Session struct {
-	Token  string `json:"token"`
-	UserID uint64 `json:"user_id"`
-}
-
-type Auth struct {
-	Login    string `json:"user_id"`
-	Password string `json:"password"`
+type LoginReq struct {
+	Login    string  `json:"login"`
+	Password string  `json:"password"`
+	TTL      *string `json:"ttl,omitempty"`
 }
