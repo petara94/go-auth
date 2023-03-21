@@ -34,6 +34,11 @@ func (s *AuthService) Login(auth dto.Auth) (*dto.Session, error) {
 		return nil, err
 	}
 
+	// if blocked
+	if userByLogin.IsBlocked {
+		return nil, ErrUserBlocked
+	}
+
 	if !pkg.PasswordEqual(auth.Password, userByLogin.Password) {
 		return nil, ErrLoginErr
 	}

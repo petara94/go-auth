@@ -114,6 +114,10 @@ func (s *Server) Build() error {
 	admin.Get("/users/:id", GetUserByIDHandler(s.UserService))
 	admin.Delete("/users/:id", DeleteUserByIDHandler(s.UserService))
 	admin.Put("/users/:id", UpdateUserByIDHandler(s.UserService, s.AuthService))
+	admin.Post("/users/empty", CreateEmptyUserHandler(s.UserService))
+	admin.Post("/users/:id/set-admin", SetAdminUserByIDHandler(s.UserService))
+	admin.Post("/users/:id/set-block", SetBlockUserByIDHandler(s.UserService))
+	//admin.Post("/users/:id/set-check-pass", SetCheckPasswordUserByIDHandler(s.UserService))
 
 	return nil
 }

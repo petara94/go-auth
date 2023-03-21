@@ -33,6 +33,159 @@ func CreateUserHandler(userService UserService) fiber.Handler {
 	}
 }
 
+func SetAdminUserByIDHandler(userService UserService) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		var (
+			err     error
+			id      uint64
+			isAdmin bool
+		)
+
+		admin, ok := ctx.Locals(UserAdminKey).(serv_dto.User)
+		if !ok {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("user not found"))
+		}
+
+		id, err = pkg.ParseUInt64(ctx.Params("id"))
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		isAdmin, err = strconv.ParseBool(ctx.Query("admin"))
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		if !isAdmin {
+			if admin.Login == AdminLoginDefault && id == admin.ID {
+				return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("`admin` user can't be changed"))
+			}
+
+			currerntUser, err := userService.GetByID(id)
+			if err != nil {
+				return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+			}
+
+			if admin.Login != AdminLoginDefault && id != admin.ID && currerntUser.IsAdmin {
+				return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("only can change only yourself"))
+			}
+		}
+
+		err = userService.SetAdmin(id, isAdmin)
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		return ctx.SendStatus(http.StatusOK)
+	}
+}
+
+func SetBlockUserByIDHandler(userService UserService) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		var (
+			err     error
+			id      uint64
+			isBlock bool
+		)
+
+		admin, ok := ctx.Locals(UserAdminKey).(serv_dto.User)
+		if !ok {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("user not found"))
+		}
+
+		id, err = pkg.ParseUInt64(ctx.Params("id"))
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		isBlock, err = strconv.ParseBool(ctx.Query("block"))
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		if admin.Login == AdminLoginDefault && id == admin.ID {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("`admin` user can't be changed"))
+		}
+
+		currerntUser, err := userService.GetByID(id)
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		if admin.Login != AdminLoginDefault && id != admin.ID && currerntUser.IsAdmin {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("only can change only yourself"))
+		}
+
+		err = userService.SetBlockUser(id, isBlock)
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		return ctx.SendStatus(http.StatusOK)
+	}
+}
+
+func SetCheckPasswordUserByIDHandler(userService UserService) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		var (
+			err     error
+			id      uint64
+			isCheck bool
+		)
+
+		admin, ok := ctx.Locals(UserAdminKey).(serv_dto.User)
+		if !ok {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("user not found"))
+		}
+
+		id, err = pkg.ParseUInt64(ctx.Params("id"))
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		isCheck, err = strconv.ParseBool(ctx.Query("check"))
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		currerntUser, err := userService.GetByID(id)
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		if id != admin.ID && currerntUser.IsAdmin {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("only can change only yourself"))
+		}
+
+		err = userService.SetCheckPassword(id, isCheck)
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		return ctx.SendStatus(http.StatusOK)
+	}
+}
+
+func CreateEmptyUserHandler(userService UserService) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		var (
+			err error
+		)
+
+		login := ctx.Query("login")
+		if login == "" {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorf("login is empty"))
+		}
+
+		user, err := userService.CreateWithLogin(login)
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(RestErrorFromError(err))
+		}
+
+		return ctx.Status(http.StatusOK).JSON(user)
+	}
+}
+
 func GetAllUsersHandler(userService UserService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var (

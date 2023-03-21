@@ -9,6 +9,7 @@ import (
 var (
 	ErrSessionExpired     = errors.New("session expired")
 	ErrLoginErr           = errors.New("wrong password or login")
+	ErrUserBlocked        = errors.New("user blocked")
 	ErrLoginAlreadyExists = errors.New("user with same login already exists")
 	ErrWrongPassword      = errors.New("wrong password")
 	ErrWrongPagination    = errors.New("wrong pagination")
